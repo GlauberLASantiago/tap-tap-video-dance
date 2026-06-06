@@ -1,1 +1,771 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GL MIDI Compass Sync — Vídeo Mestre</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎵</text></svg>">
+<style>
+:root{
+  --bg:#08111f;--panel:#101827;--panel2:#172033;--line:#334155;--text:#e5e7eb;--muted:#94a3b8;
+  --blue:#38bdf8;--purple:#a78bfa;--yellow:#fbbf24;--orange:#f59e0b;
+  --gl-green:#BCDFB9; --gl-red:#C87F8B;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;overflow-x:hidden}
+header{padding:12px 16px;background:#0b1220;border-bottom:1px solid var(--line)}
+h1{font-size:20px;font-weight:700;margin:0 0 3px;letter-spacing:-0.02em} 
+p{font-size:14px;color:var(--muted);margin:0;line-height:1.4}
+main{display:grid;grid-template-columns:minmax(340px,520px) minmax(0,1fr);gap:16px;padding:16px;max-width:100vw}
+@media(max-width:980px){main{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;min-width:0}
+h2{font-size:16px;margin:0 0 12px;font-weight:600;letter-spacing:-0.01em}
+label{display:block;font-size:12px;font-weight:600;color:#cbd5e1;margin-bottom:6px}
+input,button,select{font:inherit}
+input[type=file],input[type=number],select{
+  width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;color:var(--text);padding:8px
+}
+input[type=range]{width:100%;accent-color:var(--blue)}
+button{background:var(--panel2);border:1px solid var(--line);border-radius:999px;color:var(--text);font-weight:700;padding:9px 14px;cursor:pointer;transition:opacity 0.2s}
+button:disabled{opacity:.45;cursor:not-allowed}
+button:not(:disabled):hover{opacity:.9}
+.primary{background:linear-gradient(135deg,#0284c7,#0ea5e9);border-color:#38bdf8;color:white}
+.good{background:var(--gl-green);border-color:#a2c49f;color:#08111f}
+.warn{background:linear-gradient(135deg,#b45309,#f59e0b);border-color:#fbbf24;color:white}
+.bad{background:var(--gl-red);border-color:#b56a77;color:white}
+.bigTap{width:100%;font-size:18px;padding:18px;margin-top:10px;text-transform:uppercase;letter-spacing:0.02em}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media(max-width:700px){.grid2,.grid3{grid-template-columns:1fr}}
+video{width:100%;background:#020617;border:1px solid var(--line);border-radius:12px;max-height:260px}
+.hint{font-size:12px;color:var(--muted);line-height:1.4;margin-top:6px}
+.status{font-size:13px;line-height:1.4;margin-top:12px;border-left:4px solid var(--blue);background:rgba(56,189,248,.08);border-radius:8px;padding:12px}
+.status.good{border-color:var(--gl-green);background:rgba(188,223,185,.08)}
+.status.warn{border-color:var(--orange);background:rgba(245,158,11,.08)}
+.status.bad{border-color:var(--gl-red);background:rgba(200,127,139,.08)}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+.metric{background:#0b1220;border:1px solid var(--line);border-radius:10px;padding:10px;min-width:0}
+.metric span{display:block;color:var(--muted);font-size:11px}.metric b{display:block;font-size:17px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+canvas{display:block;width:100%;background:#020617;border:1px solid var(--line);border-radius:12px}
+#timeline{height:250px}
+#pianoRoll{height:250px;margin-top:12px}
+.kbd{font-family:ui-monospace,Menlo,monospace;border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:2px 5px;background:#020617;color:#e2e8f0}
+.markerList{max-height:180px;overflow:auto;background:#020617;border:1px solid var(--line);border-radius:12px;padding:8px}
+.row{display:grid;grid-template-columns:44px 1fr 60px;gap:8px;align-items:center;font-size:13px;padding:6px;border-bottom:1px solid rgba(148,163,184,.16)}
+.row:last-child{border-bottom:0}.row.start{background:rgba(251,191,36,.14);border-radius:8px}
+.small{font-size:11px;padding:6px 10px}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:10px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}.v{background:var(--purple)}.m{background:var(--blue)}.s{background:var(--yellow)}.p{background:var(--gl-green)}
+hr{border:0;border-top:1px solid var(--line);margin:16px 0}
+pre{max-height:120px;overflow:auto;background:#020617;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:12px;color:#cbd5e1;line-height:1.5}
+</style>
+</head>
+<body>
+<header>
+  <h1>GL MIDI Compass Sync — Vídeo Mestre</h1>
+  <p>Marque inícios de compasso ouvindo o vídeo. Depois carregue um MIDI e exporte com andamento ajustado compasso a compasso.</p>
+</header>
 
+<main>
+<section class="panel">
+  <h2>1. Vídeo mestre e marcação de compassos</h2>
+  <label>Vídeo do professor</label>
+  <input id="videoFile" type="file" accept="video/*">
+  <video id="video" controls playsinline></video>
+  <button id="markBarBtn" class="primary bigTap" disabled>Marcar Compasso</button>
+  <div class="controls" style="margin-top:12px">
+    <button id="playVideoBtn" class="good" disabled>▶ Play vídeo</button>
+    <button id="pauseVideoBtn" disabled>⏸ Pausar</button>
+    <button id="undoBtn" disabled>Desfazer</button>
+    <button id="clearBtn" class="bad" disabled>Limpar</button>
+    <span class="hint" style="margin-left:auto">Atalho: <span class="kbd">Espaço</span></span>
+  </div>
+
+  <div class="grid2" style="margin-top:16px">
+    <div>
+      <label>Fórmula de Compasso</label>
+      <select id="meter">
+        <option value="2/4">2/4</option>
+        <option value="3/4">3/4</option>
+        <option value="4/4" selected>4/4</option>
+        <option value="6/8">6/8</option>
+        <option value="9/8">9/8</option>
+        <option value="12/8">12/8</option>
+      </select>
+    </div>
+    <div>
+      <label>Qual marcação é o compasso 1 do MIDI?</label>
+      <input id="startBarMarker" type="number" min="1" step="1" value="1">
+      <div class="hint">Use se marcou contagem antes da música.</div>
+    </div>
+  </div>
+
+  <div class="grid2" style="margin-top:12px">
+    <div>
+      <label>Compasso inicial do MIDI</label>
+      <input id="midiStartBar" type="number" min="1" step="1" value="1">
+    </div>
+    <div>
+      <label>Correção visual (segundos)</label>
+      <input id="videoOffset" type="number" step="0.001" value="0">
+    </div>
+  </div>
+
+  <div class="metrics">
+    <div class="metric"><span>Marcações</span><b id="markerCount">0</b></div>
+    <div class="metric"><span>BPM médio</span><b id="avgBpm">—</b></div>
+    <div class="metric"><span>Tempo</span><b id="videoTime">0.000s</b></div>
+    <div class="metric"><span>Ativo</span><b id="activeBar">—</b></div>
+  </div>
+
+  <hr>
+  <h2>2. MIDI</h2>
+  <label>Arquivo MIDI (.mid/.midi)</label>
+  <input id="midiFile" type="file" accept=".mid,.midi,audio/midi,audio/x-midi">
+  <div class="controls" style="margin-top:12px">
+    <button id="preloadSfBtn" class="primary" disabled>Carregar SoundFont</button>
+    <button id="playSyncBtn" class="good" disabled>▶ Tocar Sincronizado</button>
+    <button id="pauseBtn" disabled>⏸ Pausar</button>
+    <button id="stopBtn" disabled>■ Parar</button>
+    <button id="exportMidiBtn" class="warn" disabled>Exportar MIDI Ajustado</button>
+  </div>
+
+  <div class="grid2" style="margin-top:12px">
+    <div>
+      <label>Volume MIDI</label>
+      <input id="midiVol" type="range" min="0" max="1" step="0.01" value="0.35">
+    </div>
+    <div>
+      <label>SoundFont</label>
+      <select id="soundfontMode">
+        <option value="gm" selected>General MIDI (FluidR3 GM)</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="status" class="status">Carregue vídeo e MIDI. Toque o vídeo e marque os inícios de compasso com a barra de espaço.</div>
+</section>
+
+<section class="panel">
+  <h2>3. Forma de onda do áudio</h2>
+  <canvas id="videoWave" width="1600" height="240"></canvas>
+  <div class="hint">Linhas roxas = inícios marcados. Linha verde = posição atual.</div>
+
+  <h2 style="margin-top:20px">4. Mapa compasso a compasso</h2>
+  <canvas id="timeline" width="1600" height="320"></canvas>
+  <div class="legend">
+    <span><i class="dot v"></i>compassos marcados</span>
+    <span><i class="dot m"></i>compassos do MIDI</span>
+    <span><i class="dot s"></i>compasso 1 (MIDI)</span>
+    <span><i class="dot p"></i>posição atual</span>
+  </div>
+  <canvas id="pianoRoll" width="1600" height="320"></canvas>
+
+  <div class="grid3" style="margin-top:12px">
+    <div>
+      <label>Zoom Horizontal</label>
+      <input id="zoom" type="range" min="1" max="12" step="0.1" value="1">
+    </div>
+    <div>
+      <label>Deslocamento</label>
+      <input id="center" type="range" min="0" max="1" step="0.001" value="0">
+    </div>
+    <div>
+      <label>Volume do Vídeo</label>
+      <input id="videoVol" type="range" min="0" max="1" step="0.01" value="0.35">
+    </div>
+  </div>
+
+  <h2 style="margin-top:20px">5. Marcações Registradas</h2>
+  <div id="markerList" class="markerList"></div>
+
+  <h2 style="margin-top:20px">6. Informações do MIDI</h2>
+  <pre id="midiInfo">Nenhum MIDI carregado.</pre>
+</section>
+</main>
+
+<script src="https://surikov.github.io/webaudiofont/npm/dist/WebAudioFontPlayer.js"></script>
+<script>
+(() => {
+"use strict";
+const $=id=>document.getElementById(id);
+const E={
+  videoFile:$("videoFile"), video:$("video"), markBarBtn:$("markBarBtn"), playVideoBtn:$("playVideoBtn"), pauseVideoBtn:$("pauseVideoBtn"),
+  undoBtn:$("undoBtn"), clearBtn:$("clearBtn"), meter:$("meter"), startBarMarker:$("startBarMarker"), midiStartBar:$("midiStartBar"),
+  videoOffset:$("videoOffset"), markerCount:$("markerCount"), avgBpm:$("avgBpm"), videoTime:$("videoTime"), activeBar:$("activeBar"),
+  midiFile:$("midiFile"), playSyncBtn:$("playSyncBtn"), pauseBtn:$("pauseBtn"), stopBtn:$("stopBtn"), exportMidiBtn:$("exportMidiBtn"),
+  midiVol:$("midiVol"), soundfontMode:$("soundfontMode"), preloadSfBtn:$("preloadSfBtn"), status:$("status"), videoWave:$("videoWave"), timeline:$("timeline"), pianoRoll:$("pianoRoll"),
+  zoom:$("zoom"), center:$("center"), videoVol:$("videoVol"), markerList:$("markerList"), midiInfo:$("midiInfo")
+};
+
+// MAPEAMENTO ESTÁTICO DE BATERIA BASEADO NO SEU CÓDIGO
+const DRUM_MAP = {
+  35: '_drum_35_17_JCLive_sf2_file', 36: '_drum_36_1_JCLive_sf2_file', 37: '_drum_37_1_JCLive_sf2_file',
+  38: '_drum_38_1_JCLive_sf2_file', 39: '_drum_39_1_JCLive_sf2_file', 40: '_drum_40_1_JCLive_sf2_file',
+  41: '_drum_41_0_FluidR3_GM_sf2_file', 42: '_drum_42_0_FluidR3_GM_sf2_file', 43: '_drum_43_0_FluidR3_GM_sf2_file',
+  44: '_drum_44_0_FluidR3_GM_sf2_file', 45: '_drum_45_0_FluidR3_GM_sf2_file', 46: '_drum_46_0_FluidR3_GM_sf2_file',
+  47: '_drum_47_0_FluidR3_GM_sf2_file', 48: '_drum_48_0_FluidR3_GM_sf2_file', 49: '_drum_49_0_FluidR3_GM_sf2_file',
+  50: '_drum_50_0_FluidR3_GM_sf2_file', 51: '_drum_51_0_FluidR3_GM_sf2_file', 52: '_drum_52_0_FluidR3_GM_sf2_file',
+  53: '_drum_53_0_FluidR3_GM_sf2_file', 54: '_drum_54_0_FluidR3_GM_sf2_file', 55: '_drum_55_0_FluidR3_GM_sf2_file',
+  56: '_drum_56_0_FluidR3_GM_sf2_file', 57: '_drum_57_0_FluidR3_GM_sf2_file', 58: '_drum_58_0_FluidR3_GM_sf2_file',
+  59: '_drum_59_0_FluidR3_GM_sf2_file', 60: '_drum_60_0_FluidR3_GM_sf2_file', 61: '_drum_61_0_FluidR3_GM_sf2_file',
+  63: '_drum_63_0_FluidR3_GM_sf2_file', 64: '_drum_64_0_FluidR3_GM_sf2_file', 65: '_drum_65_0_FluidR3_GM_sf2_file',
+  66: '_drum_66_0_FluidR3_GM_sf2_file', 80: '_drum_80_0_FluidR3_GM_sf2_file', 81: '_drum_81_0_FluidR3_GM_sf2_file'
+};
+
+let markers=[];
+let midi=null;
+let midiBytes=null;
+let urls=[];
+let ac=null;
+let videoAudioWave=null;
+let sfPlayer=null;
+let sfLoaded=false;
+let sfLoading=false;
+const sfPresetCache=new Map();
+let playing=false;
+let raf=null;
+let schedTimer=null;
+let activeNodes=[];
+
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const fmt=x=>Number.isFinite(x)?x.toFixed(3)+"s":"—";
+function status(msg,type=""){E.status.className=`status ${type}`.trim();E.status.innerHTML=msg;}
+function ctx(){ac=ac||new(window.AudioContext||window.webkitAudioContext)();return ac;}
+async function decodeAudioFromFile(file){
+  return await ctx().decodeAudioData((await file.arrayBuffer()).slice(0));
+}
+function waveformFromBuffer(buffer, points=5000){
+  const mono=new Float32Array(buffer.length);
+  for(let c=0;c<buffer.numberOfChannels;c++){
+    const ch=buffer.getChannelData(c);
+    for(let i=0;i<ch.length;i++) mono[i]+=ch[i]/buffer.numberOfChannels;
+  }
+  const step=Math.max(1,Math.floor(mono.length/points));
+  const peaks=[];
+  for(let i=0;i<mono.length;i+=step){
+    let min=1,max=-1,rms=0,n=0;
+    for(let j=0;j<step && i+j<mono.length;j++){
+      const v=mono[i+j];
+      if(v<min)min=v;
+      if(v>max)max=v;
+      rms+=v*v;
+      n++;
+    }
+    peaks.push([min,max,Math.sqrt(rms/Math.max(1,n))]);
+  }
+  return {peaks,duration:buffer.duration};
+}
+function revoke(){urls.forEach(URL.revokeObjectURL);urls=[];}
+
+function meterInfo(){
+  const [num,den]=String(E.meter.value||"4/4").split("/").map(Number);
+  const quarterPerUnit=4/den;
+  const barQuarters=num*quarterPerUnit;
+  return {num,den,barQuarters};
+}
+
+function startMarkerIndex(){
+  return clamp((parseInt(E.startBarMarker.value,10)||1)-1,0,Math.max(0,markers.length-1));
+}
+function midiStartBarIndex(){
+  return Math.max(0,(parseInt(E.midiStartBar.value,10)||1)-1);
+}
+function videoStartTime(){
+  return (markers[startMarkerIndex()]??0)+(Number(E.videoOffset.value)||0);
+}
+function avgBarSeconds(){
+  if(markers.length<2) return 2;
+  let s=0;
+  for(let i=1;i<markers.length;i++) s+=markers[i]-markers[i-1];
+  return s/(markers.length-1);
+}
+function midiQuarterToVideoTime(q){
+  const mi=meterInfo();
+  const midiBar=(q/mi.barQuarters)-midiStartBarIndex();
+  const si=startMarkerIndex();
+  if(markers.length<2) return videoStartTime()+midiBar*avgBarSeconds();
+  if(midiBar<=0) return markers[si]+midiBar*avgBarSeconds()+(Number(E.videoOffset.value)||0);
+  const full=Math.floor(midiBar);
+  const frac=midiBar-full;
+  const idx=si+full;
+  if(idx < markers.length-1) return markers[idx]+(markers[idx+1]-markers[idx])*frac+(Number(E.videoOffset.value)||0);
+  const lastIdx=markers.length-1;
+  const barsAfter=(idx-lastIdx)+frac;
+  return markers[lastIdx]+barsAfter*avgBarSeconds()+(Number(E.videoOffset.value)||0);
+}
+function videoTimeToMidiBar(vt){
+  const si=startMarkerIndex();
+  if(markers.length<2) return (vt-videoStartTime())/avgBarSeconds()+midiStartBarIndex()+1;
+  if(vt<=markers[si]) return (vt-markers[si])/avgBarSeconds()+midiStartBarIndex()+1;
+  let i=si;
+  while(i<markers.length-2 && vt>=markers[i+1]) i++;
+  if(vt>markers[markers.length-1]) return midiStartBarIndex()+1+(markers.length-1-si)+(vt-markers[markers.length-1])/avgBarSeconds();
+  const frac=(vt-markers[i])/Math.max(0.001,markers[i+1]-markers[i]);
+  return midiStartBarIndex()+1+(i-si)+frac;
+}
+
+function readStr(dv,pos,len){let s="";for(let i=0;i<len;i++)s+=String.fromCharCode(dv.getUint8(pos+i));return s;}
+function readU32(dv,pos){return dv.getUint32(pos,false);}
+function readU16(dv,pos){return dv.getUint16(pos,false);}
+function readVLQ(bytes,ref){
+  let value=0,b;
+  do{b=bytes[ref.pos++];value=(value<<7)|(b&0x7f);}while(b&0x80);
+  return value;
+}
+function parseMidi(arrayBuffer){
+  const bytes=new Uint8Array(arrayBuffer);
+  const dv=new DataView(arrayBuffer);
+  let pos=0;
+  if(readStr(dv,pos,4)!=="MThd") throw new Error("Arquivo não parece ser MIDI SMF.");
+  const headerLen=readU32(dv,pos+4);
+  const format=readU16(dv,pos+8);
+  const ntrks=readU16(dv,pos+10);
+  const division=readU16(dv,pos+12);
+  if(division&0x8000) throw new Error("MIDI SMPTE não suportado.");
+  const ppq=division;
+  pos+=8+headerLen;
+
+  const notes=[], tempos=[], timeSigs=[];
+  const programs=Array(16).fill(0), currentProgram=Array(16).fill(0);
+  let maxTick=0;
+
+  for(let tr=0;tr<ntrks;tr++){
+    if(readStr(dv,pos,4)!=="MTrk") throw new Error("Chunk MTrk esperado.");
+    const len=readU32(dv,pos+4);
+    pos+=8;
+    const end=pos+len;
+    const ref={pos};
+    let tick=0, running=0;
+    const open=new Map();
+
+    while(ref.pos<end){
+      tick+=readVLQ(bytes,ref);
+      let status=bytes[ref.pos++];
+      
+      if(status<0x80){
+        ref.pos--;
+        status=running;
+      } else if (status < 0xF0) {
+        running=status;
+      }
+
+      if(status===0xff){
+        const type=bytes[ref.pos++];
+        const l=readVLQ(bytes,ref);
+        if(type===0x51 && l===3){
+          const mpqn=(bytes[ref.pos]<<16)|(bytes[ref.pos+1]<<8)|bytes[ref.pos+2];
+          tempos.push({tick,mpqn});
+        }else if(type===0x58 && l>=4){
+          const nn=bytes[ref.pos], dd=2**bytes[ref.pos+1];
+          timeSigs.push({tick,nn,dd});
+        }
+        ref.pos+=l;
+      }else if(status===0xf0 || status===0xf7){
+        const l=readVLQ(bytes,ref); ref.pos+=l;
+      }else{
+        const cmd=status&0xf0, ch=status&0x0f;
+        const d1=bytes[ref.pos++];
+        const hasD2=!(cmd===0xc0 || cmd===0xd0);
+        const d2=hasD2?bytes[ref.pos++]:0;
+        if(cmd===0x90 && d2>0){
+          const key=ch+":"+d1;
+          if(!open.has(key)) open.set(key,[]);
+          open.get(key).push({tick,vel:d2,ch,note:d1,program:currentProgram[ch]});
+        }else if(cmd===0x80 || (cmd===0x90 && d2===0)){
+          const key=ch+":"+d1;
+          const arr=open.get(key);
+          if(arr && arr.length){
+            const on=arr.shift();
+            notes.push({startTick:on.tick,endTick:tick,note:d1,vel:on.vel,ch:on.ch,program:on.program||0});
+          }
+        }else if(cmd===0xc0){
+          programs[ch]=d1; currentProgram[ch]=d1;
+        }
+      }
+      maxTick=Math.max(maxTick,tick);
+    }
+    pos=end;
+  }
+  tempos.sort((a,b)=>a.tick-b.tick);
+  if(!tempos.length) tempos.push({tick:0,mpqn:500000});
+  notes.sort((a,b)=>a.startTick-b.startTick || a.note-b.note);
+  return {format,ntrks,ppq,notes,tempos,timeSigs,programs,maxTick};
+}
+
+function gmProgramName(n){
+  const names=["Acoustic Grand Piano","Bright Acoustic Piano","Electric Grand Piano","Honky-tonk Piano","Electric Piano 1","Electric Piano 2","Harpsichord","Clavinet","Celesta","Glockenspiel","Music Box","Vibraphone","Marimba","Xylophone","Tubular Bells","Dulcimer","Drawbar Organ","Percussive Organ","Rock Organ","Church Organ","Reed Organ","Accordion","Harmonica","Tango Accordion","Acoustic Guitar nylon","Acoustic Guitar steel","Electric Guitar jazz","Electric Guitar clean","Electric Guitar muted","Overdriven Guitar","Distortion Guitar","Guitar harmonics","Acoustic Bass","Electric Bass finger","Electric Bass pick","Fretless Bass","Slap Bass 1","Slap Bass 2","Synth Bass 1","Synth Bass 2","Violin","Viola","Cello","Contrabass","Tremolo Strings","Pizzicato Strings","Orchestral Harp","Timpani","String Ensemble 1","String Ensemble 2","SynthStrings 1","SynthStrings 2","Choir Aahs","Voice Oohs","Synth Voice","Orchestra Hit","Trumpet","Trombone","Tuba","Muted Trumpet","French Horn","Brass Section","SynthBrass 1","SynthBrass 2","Soprano Sax","Alto Sax","Tenor Sax","Baritone Sax","Oboe","English Horn","Bassoon","Clarinet","Piccolo","Flute","Recorder","Pan Flute","Blown Bottle","Shakuhachi","Whistle","Ocarina","Lead 1 square","Lead 2 sawtooth","Lead 3 calliope","Lead 4 chiff","Lead 5 charang","Lead 6 voice","Lead 7 fifths","Lead 8 bass+lead","Pad 1 new age","Pad 2 warm","Pad 3 polysynth","Pad 4 choir","Pad 5 bowed","Pad 6 metallic","Pad 7 halo","Pad 8 sweep","FX 1 rain","FX 2 soundtrack","FX 3 crystal","FX 4 atmosphere","FX 5 brightness","FX 6 goblins","FX 7 echoes","FX 8 sci-fi","Sitar","Banjo","Shamisen","Koto","Kalimba","Bag pipe","Fiddle","Shanai","Tinkle Bell","Agogo","Steel Drums","Woodblock","Taiko Drum","Melodic Tom","Synth Drum","Reverse Cymbal","Guitar Fret Noise","Breath Noise","Seashore","Bird Tweet","Telephone Ring","Helicopter","Applause","Gunshot"];
+  return names[n] || ("GM "+(n+1));
+}
+
+function loadScriptOnce(url, variableName){
+  return new Promise((resolve,reject)=>{
+    if(window[variableName]){resolve(window[variableName]);return;}
+    const existing=document.querySelector(`script[data-sf="${variableName}"]`);
+    if(existing){
+      existing.addEventListener("load",()=>resolve(window[variableName]));
+      existing.addEventListener("error",()=>reject(new Error("Falha: "+variableName)));
+      return;
+    }
+    const s=document.createElement("script");
+    s.src=url; s.async=true; s.dataset.sf=variableName;
+    s.onload=()=>window[variableName]?resolve(window[variableName]):reject(new Error("Falha na var "+variableName));
+    s.onerror=()=>reject(new Error("Falha no download: "+url));
+    document.head.appendChild(s);
+  });
+}
+
+async function loadPreset(kind,id){
+  const key=kind+":"+id;
+  if(sfPresetCache.has(key)) return sfPresetCache.get(key);
+  
+  if(!window.WebAudioFontPlayer) throw new Error("WebAudioFontPlayer não carregado.");
+  sfPlayer=sfPlayer||new WebAudioFontPlayer();
+  
+  const acx=ctx();
+  let variableName,url;
+  
+  if(kind==="drum"){
+    // Utiliza o dicionário com base nos arquivos corretos do seu QWERTY Core
+    variableName = DRUM_MAP[id] || `_drum_${id}_0_FluidR3_GM_sf2_file`;
+    
+    // O WebAudioFont espera que os arquivos JS de bateria comecem com "128" em vez de "_drum_"
+    let fileBase = variableName.replace('_drum_', '128');
+    url = `https://surikov.github.io/webaudiofontdata/sound/${fileBase}.js`;
+    
+  }else{
+    variableName = `_tone_${String(clamp(id|0,0,127)).padStart(3,"0")}0_FluidR3_GM_sf2_file`;
+    url = `https://surikov.github.io/webaudiofontdata/sound/${String(clamp(id|0,0,127)).padStart(3,"0")}0_FluidR3_GM_sf2_file.js`;
+  }
+  
+  const preset=await loadScriptOnce(url,variableName);
+  sfPlayer.loader.decodeAfterLoading(acx,variableName);
+  sfPresetCache.set(key,preset);
+  return preset;
+}
+
+async function ensureSoundFonts(){
+  if(!midi || sfLoaded || sfLoading) return;
+  sfLoading=true;
+  status("Carregando SoundFont General MIDI...","warn");
+  const melodic=new Set(), drums=new Set();
+  for(const n of midi.notes){
+    if(n.ch===9) drums.add(n.note);
+    else melodic.add(clamp(n.program||midi.programs[n.ch]||0,0,127));
+  }
+  const total=melodic.size+drums.size;
+  let done=0;
+  
+  sfPlayer = sfPlayer || new WebAudioFontPlayer();
+  
+  try{
+    for(const p of melodic){
+      status(`Carregando GM ${p+1}: ${gmProgramName(p)} (${done+1}/${total})...`,"warn");
+      await loadPreset("melodic",p); done++;
+    }
+    for(const d of drums){
+      status(`Carregando bateria GM nota ${d} (${done+1}/${total})...`,"warn");
+      try{await loadPreset("drum",d);}catch(e){console.warn(e);} done++;
+    }
+    sfLoaded=true;
+    status("SoundFont carregado. Pronto para tocar sincronizado.", "good");
+  }finally{
+    sfLoading=false;
+    update();
+  }
+}
+
+function scheduleNote(note,when,dur){
+  if(dur<=0 || !sfPlayer) return;
+  const acx=ctx();
+  const vol=Number(E.midiVol.value)||0.35;
+  const velocity=(note.vel/127)*vol;
+  try{
+    const isDrum=(note.ch===9);
+    
+    let preset;
+    if (isDrum) {
+        preset = sfPresetCache.get("drum:"+note.note);
+    } else {
+        preset = sfPresetCache.get("melodic:"+clamp(note.program||midi.programs[note.ch]||0,0,127));
+    }
+    
+    if(preset){
+      const node=sfPlayer.queueWaveTable(acx, acx.destination, preset, when, note.note, dur, velocity);
+      activeNodes.push(node);
+    }
+  }catch(e){}
+}
+
+function stopSynth(){
+  for(const n of activeNodes){
+    try{if(n && typeof n.cancel==="function") n.cancel();}catch(e){}
+    try{if(n && typeof n.stop==="function") n.stop();}catch(e){}
+  }
+  activeNodes=[];
+}
+
+function videoNowQuarter(){
+  if(!midi) return 0;
+  return (videoTimeToMidiBar(E.video.currentTime)-1)*meterInfo().barQuarters;
+}
+let playToken=0;
+function scheduleLoop(){
+  if(!playing || !midi) return;
+  const acx=ctx();
+  const lookAhead=0.5;
+  const now=acx.currentTime;
+  const currentVideo=E.video.currentTime;
+  const currentQuarter=videoNowQuarter();
+  const endQuarter=(videoTimeToMidiBar(currentVideo+lookAhead)-1)*meterInfo().barQuarters;
+
+  const ppq=midi.ppq;
+  for(const note of midi.notes){
+    const qs=note.startTick/ppq;
+    if(qs<currentQuarter-0.05 || qs>endQuarter+0.25) continue;
+    if(note._lastScheduledToken===playToken) continue;
+    const startVideo=midiQuarterToVideoTime(qs);
+    const endVideoT=midiQuarterToVideoTime(note.endTick/ppq);
+    const when=now+(startVideo-currentVideo);
+    const dur=Math.max(0.03,endVideoT-startVideo);
+    if(when>=now-0.02 && when<=now+lookAhead+0.15){
+      scheduleNote(note,Math.max(now,when),dur);
+      note._lastScheduledToken=playToken;
+    }
+  }
+}
+
+async function playSync(){
+  if(!midi || markers.length<2) return;
+  const acx = ctx();
+  if(acx.state === 'suspended') await acx.resume();
+  
+  try{await ensureSoundFonts();}catch(err){status("Erro no SoundFont: "+err.message,"bad");return;}
+  stopAll();
+  playToken++;
+  playing=true;
+  E.video.currentTime=videoStartTime();
+  try{await E.video.play();}catch(e){}
+  status("Tocando vídeo e MIDI em sincronia...", "good");
+  schedTimer=setInterval(scheduleLoop,80);
+  scheduleLoop();
+  drawLoop();
+}
+function pauseAll(){
+  playing=false;
+  E.video.pause();
+  if(schedTimer) clearInterval(schedTimer);
+  schedTimer=null;
+  if(raf) cancelAnimationFrame(raf);
+  raf=null;
+  stopSynth();
+}
+function stopAll(){
+  pauseAll();
+  E.video.currentTime=videoStartTime();
+  drawAll();
+}
+
+function markBar(){
+  if(!E.video.src) return;
+  const t=E.video.currentTime;
+  if(markers.length && Math.abs(t-markers[markers.length-1])<0.05) return;
+  markers.push(t);
+  markers.sort((a,b)=>a-b);
+  if(markers.length===1) E.startBarMarker.value=1;
+  update();
+}
+
+async function loadVideo(){
+  const f=E.videoFile.files[0]; if(!f) return;
+  revoke();
+  const u=URL.createObjectURL(f); urls.push(u); E.video.src=u;
+  videoAudioWave=null;
+  status("Tentando extrair o áudio para desenhar a onda...", "warn");
+  try{
+    const buf=await decodeAudioFromFile(f);
+    videoAudioWave=waveformFromBuffer(buf);
+    status("Vídeo carregado. Dê play e marque os compassos.", "good");
+  }catch(err){
+    videoAudioWave=null;
+    status("O vídeo foi carregado, mas sem onda visível. O app ainda funciona.", "warn");
+  }
+  update();
+}
+async function loadMidi(){
+  const f=E.midiFile.files[0]; if(!f) return;
+  try{
+    midiBytes=await f.arrayBuffer();
+    midi=parseMidi(midiBytes.slice(0));
+    
+    sfLoaded=false; sfLoading=false; sfPresetCache.clear();
+    
+    const mi=meterInfo();
+    const bars=(midi.maxTick/midi.ppq/mi.barQuarters).toFixed(1);
+    E.midiInfo.textContent = `Formato: ${midi.format}\nTrilhas: ${midi.ntrks}\nPPQ: ${midi.ppq}\nNotas: ${midi.notes.length}\nDuração est. (${E.meter.value}): ${bars} compassos\nProgramas GM: ${[...new Set(midi.notes.filter(n=>n.ch!==9).map(n=>n.program||midi.programs[n.ch]||0))].sort((a,b)=>a-b).map(p=>(p+1)+": "+gmProgramName(p)).join(", ") || "nenhum"}\nBateria (Canal 10): ${midi.notes.some(n=>n.ch===9)?"Sim":"Não"}`;
+    status("MIDI carregado. Marque o vídeo e sincronize.", "good");
+  }catch(err){
+    midi=null; E.midiInfo.textContent="Erro: "+err.message;
+    status("Erro ao ler MIDI: "+err.message,"bad");
+  }
+  update();
+}
+
+function visibleRange(){
+  const duration=Math.max(E.video.duration||0, markers[markers.length-1]||0, midi?midiQuarterToVideoTime(midi.maxTick/midi.ppq):0, 10);
+  const span=Math.max(1,duration/(Number(E.zoom.value)||1));
+  const from=(Number(E.center.value)||0)*Math.max(0,duration-span);
+  return {from,to:from+span,span,duration};
+}
+function xOf(t,w,r){return (t-r.from)/r.span*w;}
+
+function drawVideoWave(){
+  const c=E.videoWave.getContext("2d"), w=E.videoWave.width, h=E.videoWave.height, r=visibleRange();
+  c.clearRect(0,0,w,h); c.fillStyle="#020617"; c.fillRect(0,0,w,h);
+  c.strokeStyle="rgba(148,163,184,.18)"; c.lineWidth=1;
+  for(let i=0;i<=10;i++){const x=i*w/10; c.beginPath(); c.moveTo(x,0); c.lineTo(x,h); c.stroke();}
+
+  if(!videoAudioWave || !videoAudioWave.peaks.length){
+    c.fillStyle="#94a3b8"; c.font="14px system-ui"; c.fillText("A onda aparecerá após carregar um vídeo válido.",16,32);
+  }else{
+    const mid=h/2, amp=h*0.4; c.strokeStyle="rgba(167,139,250,.95)"; c.lineWidth=1.2; c.beginPath();
+    for(let x=0;x<w;x++){
+      const t=r.from+(x/w)*r.span; if(t<0 || t>videoAudioWave.duration) continue;
+      const idx=clamp(Math.floor(t/videoAudioWave.duration*videoAudioWave.peaks.length),0,videoAudioWave.peaks.length-1);
+      const p=videoAudioWave.peaks[idx] || [0,0];
+      c.moveTo(x,mid+p[0]*amp); c.lineTo(x,mid+p[1]*amp);
+    }
+    c.stroke(); c.fillStyle="#cbd5e1"; c.font="12px system-ui"; c.fillText(`duração: ${videoAudioWave.duration.toFixed(2)}s`,12,h-12);
+  }
+
+  const si=startMarkerIndex();
+  markers.forEach((m,i)=>{
+    const x=xOf(m,w,r); if(x<0||x>w) return;
+    c.strokeStyle=i===si?"#fbbf24":"#a78bfa"; c.lineWidth=i===si?3:2; c.beginPath(); c.moveTo(x,0); c.lineTo(x,h); c.stroke();
+    c.fillStyle="#e5e7eb"; c.font="11px system-ui"; c.fillText(String(i+1),x+4,14);
+  });
+
+  const px=xOf(E.video.currentTime,w,r);
+  if(px>=0&&px<=w){c.strokeStyle="#BCDFB9"; c.lineWidth=2; c.beginPath(); c.moveTo(px,0); c.lineTo(px,h); c.stroke();}
+}
+
+function drawTimeline(){
+  const c=E.timeline.getContext("2d"), w=E.timeline.width,h=E.timeline.height,r=visibleRange();
+  c.clearRect(0,0,w,h); c.fillStyle="#020617"; c.fillRect(0,0,w,h);
+  c.strokeStyle="rgba(148,163,184,.18)";
+  for(let i=0;i<=10;i++){const x=i*w/10;c.beginPath();c.moveTo(x,0);c.lineTo(x,h);c.stroke();}
+  
+  const si=startMarkerIndex();
+  markers.forEach((m,i)=>{
+    const x=xOf(m,w,r); if(x<0||x>w) return;
+    c.strokeStyle=i===si?"#fbbf24":"#a78bfa"; c.lineWidth=i===si?3:2; c.beginPath(); c.moveTo(x,36); c.lineTo(x,h); c.stroke();
+  });
+  if(midi){
+    const mi=meterInfo(), qEnd=midi.maxTick/midi.ppq;
+    c.strokeStyle="rgba(56,189,248,.45)";
+    for(let q=0,bar=0;q<=qEnd;bar++,q=bar*mi.barQuarters){
+      const t=midiQuarterToVideoTime(q), x=xOf(t,w,r); if(x<0||x>w) continue;
+      c.lineWidth=bar===midiStartBarIndex()?3:1; c.beginPath(); c.moveTo(x,0); c.lineTo(x,32); c.stroke();
+    }
+  }
+  const px=xOf(E.video.currentTime,w,r);
+  if(px>=0&&px<=w){c.strokeStyle="#BCDFB9";c.lineWidth=2;c.beginPath();c.moveTo(px,0);c.lineTo(px,h);c.stroke();}
+}
+
+function drawPianoRoll(){
+  const c=E.pianoRoll.getContext("2d"), w=E.pianoRoll.width,h=E.pianoRoll.height,r=visibleRange();
+  c.clearRect(0,0,w,h); c.fillStyle="#020617"; c.fillRect(0,0,w,h);
+  if(!midi) return;
+  let minN=128,maxN=0;
+  for(const n of midi.notes){minN=Math.min(minN,n.note);maxN=Math.max(maxN,n.note);}
+  if(minN>maxN){minN=48;maxN=72;}
+  const pad=30;
+  for(const n of midi.notes){
+    const t0=midiQuarterToVideoTime(n.startTick/midi.ppq), t1=midiQuarterToVideoTime(n.endTick/midi.ppq);
+    if(t1<r.from || t0>r.to) continue;
+    const x=xOf(t0,w,r), x2=xOf(t1,w,r), y=h-pad-((n.note-minN)/Math.max(1,maxN-minN))*(h-pad*2);
+    c.fillStyle=n.ch===9?"rgba(251,191,36,.65)":"rgba(56,189,248,.65)";
+    c.fillRect(x,y,Math.max(2,x2-x),5);
+  }
+  const px=xOf(E.video.currentTime,w,r);
+  if(px>=0&&px<=w){c.strokeStyle="#BCDFB9";c.lineWidth=2;c.beginPath();c.moveTo(px,0);c.lineTo(px,h);c.stroke();}
+}
+function drawAll(){drawVideoWave();drawTimeline();drawPianoRoll();}
+function drawLoop(){drawAll(); updateActive(); if(playing) raf=requestAnimationFrame(drawLoop);}
+
+function renderList(){
+  E.markerList.innerHTML="";
+  if(!markers.length) return;
+  const si=startMarkerIndex();
+  markers.forEach((m,i)=>{
+    const row=document.createElement("div"); row.className="row"+(i===si?" start":"");
+    row.innerHTML=`<b>#${i+1}</b><span>${m.toFixed(3)}s</span><button class="small bad">Del</button>`;
+    row.querySelector("button").onclick=()=>{markers.splice(i,1);update();};
+    E.markerList.appendChild(row);
+  });
+}
+function updateActive(){
+  E.videoTime.textContent=fmt(E.video.currentTime);
+  E.activeBar.textContent=videoTimeToMidiBar(E.video.currentTime).toFixed(2);
+}
+function update(){
+  E.markerCount.textContent=String(markers.length);
+  E.avgBpm.textContent=(markers.length>=2)?(60/(avgBarSeconds()/meterInfo().barQuarters)).toFixed(1):"—";
+  updateActive(); renderList();
+  const hv=!!E.video.src, hm=!!midi, ready=hv&&hm&&markers.length>=2;
+  E.markBarBtn.disabled=!hv; E.playVideoBtn.disabled=!hv; E.pauseVideoBtn.disabled=!hv;
+  E.undoBtn.disabled=!markers.length; E.clearBtn.disabled=!markers.length;
+  E.preloadSfBtn.disabled=!(hm&&midi.notes.length);
+  E.playSyncBtn.disabled=!ready; E.pauseBtn.disabled=!ready; E.stopBtn.disabled=!ready; E.exportMidiBtn.disabled=!ready;
+  drawAll();
+}
+
+function writeVLQ(value){
+  let bytes=[value&0x7f]; value>>=7;
+  while(value>0){bytes.unshift((value&0x7f)|0x80); value>>=7;}
+  return bytes;
+}
+function mpqnForBarInterval(barIndex){
+  const si=startMarkerIndex(), mi=meterInfo(), idx=si+barIndex;
+  const dur=(idx>=0 && idx<markers.length-1) ? markers[idx+1]-markers[idx] : avgBarSeconds();
+  return Math.max(1,Math.round((dur/mi.barQuarters)*1000000));
+}
+function exportTempoMidi(){
+  if(!midi) return;
+  const mi=meterInfo(), barCount=Math.ceil(midi.maxTick/midi.ppq/mi.barQuarters)+2, track=[];
+  let lastTick=0;
+  for(let b=0;b<barCount;b++){
+    const tick=Math.round((midiStartBarIndex()+b)*mi.barQuarters*midi.ppq), delta=Math.max(0,tick-lastTick); lastTick=tick;
+    track.push(...writeVLQ(delta));
+    const mpqn=mpqnForBarInterval(b);
+    track.push(0xff,0x51,0x03,(mpqn>>16)&255,(mpqn>>8)&255,mpqn&255);
+  }
+  track.push(0x00,0xff,0x2f,0x00);
+
+  const orig=new Uint8Array(midiBytes), dv=new DataView(midiBytes), restStart=8+readU32(dv,4), out=[];
+  const pushU32=(a,v)=>a.push((v>>>24)&255,(v>>>16)&255,(v>>>8)&255,v&255), pushU16=(a,v)=>a.push((v>>>8)&255,v&255);
+  "MThd".split("").forEach(c=>out.push(c.charCodeAt(0))); pushU32(out,6); pushU16(out,1); pushU16(out,readU16(dv,10)+1); pushU16(out,readU16(dv,12));
+  "MTrk".split("").forEach(c=>out.push(c.charCodeAt(0))); pushU32(out,track.length); out.push(...track);
+  for(let i=restStart;i<orig.length;i++) out.push(orig[i]);
+
+  const url=URL.createObjectURL(new Blob([new Uint8Array(out)],{type:"audio/midi"}));
+  const a=document.createElement("a"); a.href=url; a.download="gl-midi-tempo-ajustado.mid"; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+E.videoFile.onchange=loadVideo; E.midiFile.onchange=loadMidi; E.markBarBtn.onclick=markBar;
+E.playVideoBtn.onclick=()=>E.video.play(); E.pauseVideoBtn.onclick=()=>E.video.pause();
+E.undoBtn.onclick=()=>{markers.pop();update();}; E.clearBtn.onclick=()=>{markers=[];update();};
+E.preloadSfBtn.onclick=()=>ensureSoundFonts();
+E.playSyncBtn.onclick=playSync; E.pauseBtn.onclick=pauseAll; E.stopBtn.onclick=stopAll; E.exportMidiBtn.onclick=exportTempoMidi;
+E.videoVol.oninput=()=>{E.video.volume=Number(E.videoVol.value);}; E.video.volume=Number(E.videoVol.value);
+[E.meter,E.startBarMarker,E.midiStartBar,E.videoOffset,E.zoom,E.center,E.midiVol,E.soundfontMode].forEach(el=>el.addEventListener("change",update));
+E.video.addEventListener("timeupdate",()=>{updateActive();drawAll();});
+document.addEventListener("keydown",ev=>{if(ev.code==="Space"&&!["input","textarea","select"].includes((document.activeElement?.tagName||"").toLowerCase())){ev.preventDefault();markBar();}});
+
+update();
+})();
+</script>
+</body>
+</html>
